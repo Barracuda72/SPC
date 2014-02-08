@@ -1,0 +1,16 @@
+#ifndef __TYPE_H__
+#define __TYPE_H__
+
+enum
+{
+	TYPE_INTEGER = 1100,
+	TYPE_WORD,
+	TYPE_BYTE,
+	TYPE_SHORT,
+	TYPE_REAL,
+	TYPE_STRING,
+	TYPE_FILE,
+	TYPE_TEXT
+};
+
+#endif //__TYPE_H__
