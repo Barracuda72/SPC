@@ -1,40 +1,24 @@
 program test;
 
-type 
-  newt = integer; 
+type
+  newt = integer;
   newnewt = real;
 
-var 
+var
   x,y,t,q : integer;
-  z : real; 
+  z : real;
   sh : string;
+  integer : real;
 
-const 
-  k = 5; 
+const
+  k = +5;
+  e = 1.0e+2;
   h = 1890.03E+08;
-  sc = 'Йа строковое константо';
-
-{
-	Системные процедуры, о которых наш компилятор пока не знает
-}
-
-procedure writeln;
-begin
-end;
-
-procedure readln;
-begin
-end;
-
-procedure some_proc;
-begin
-end;
+  sc = 'Йа строковое к%%%%%%онстанто';
+  q = 23145721354235472154762325235834657438543826583426586435783426584326587432654836584363487563748265743856438757213542354721547623252358346574385438265834265864357834265843265874326548365843634875637482657438564387572135423547215476232523583465743854382658342658643578342658432658743265483658436348756374826574385643875721354235472154762325235834657438543826583426586435783426584326587432654836584363487563748265743856438756742384365743826587436584326534587436543876534658962345843547123578354732541235421354723547231.03E+08;
+  t = 342364327123647231564231645231452354231853124245231421;
 
 procedure noneproc(zetta : integer);
-begin
-end;
-
-procedure debug_w(a : integer);
 begin
 end;
 
@@ -52,7 +36,7 @@ noneproc(e);
 {
 if true then
 	x := 0
-else x := 1;}
+else x := 1;}if x76 >= 0 > 787;
 {super_puper_func := 0;}
 NewVar := 18;
 end;
@@ -63,45 +47,52 @@ begin
 x := 0;
 end;
 
+var uio : array [1..2] of integer;
+
 begin
-z := 56.0;
+z := 56.0e3;
 y := 546;
-debug_w(y);
 x := 1;
-debug_w(x);
-// writeln(z);
+a_6 = 199e-10;
+str:='jlkh;
+ch:='k';
+k:?;
+ writeln(z);
 
 {	Ветвление	}
-{if TRUE then
+if TRUE then
 	begin
 		X := 1;
 		y := 2;
 	end
 else
-}
-{	Вызов функции	}
+
+//	Вызов функции
 x := super_puper_func(z, y, x, 1, 2);
 
 {	Всяческие присваивания	}
-// z := 5;
-// t := 0.5;
+z := 5;
+t := 0.5;
 sh := sc;
 sh := 'Это просто строка';
 {	Вызов процедуры	}
-// some_proc;
+some_proc;
 
 {	Цикл while	}
-{while true do begin
+while true do begin
 	x := super_puper_func(x, y, z, 1);
-end;}
+end;
 
 {	Цикл repeat	}
-{repeat
+repeat
 	y := 0;
 	x := y;
-until false;}
+until false;
 
-// k := 5;
-// writeln;
+{ Engrish commen{tary }
+
+k := 5;
+writeln;
 sh := 'Новая строка';
+{
 end.

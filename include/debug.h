@@ -8,11 +8,11 @@
 #ifdef __DEBUG__
 
 #include <stdio.h>
-#define DBG printf
+#define DBG(...) fprintf(stderr, __VA_ARGS__)
 
 #else
 
-#define DBG
+#define DBG(...)
 
 #endif //__DEBUG__
 

@@ -10,7 +10,8 @@ enum
 	TYPE_REAL,
 	TYPE_STRING,
 	TYPE_FILE,
-	TYPE_TEXT
+	TYPE_TEXT,
+	TYPE_VOID
 };
 
 #endif //__TYPE_H__

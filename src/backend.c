@@ -27,6 +27,11 @@ static tree *t_data = 0;
 
 void backend_print_tree(tree *t)
 {
+  // Вывод дерева в формате GraphViz
+}
+
+void _backend_print_tree(tree *t)
+{
 	t_data = t;
 	//	Генерируем секцию .text
 	io_printf(".text\n");
@@ -251,6 +256,7 @@ static void b_get_var_value(int id, rec_desc *area)
 static int b_get_var_size(int id, rec_desc *area)
 {
 	rec_desc *p = rec_get(id, rd->area);
+	//rec_desc *p = rec_get(id, area);
 	if(p -> param == REC_VARARG)
 		return 4;
 
@@ -379,3 +385,4 @@ static void b_func_call(int id)
 		io_printf("call func_%d\n", id);
 	}
 }
+

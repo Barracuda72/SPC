@@ -1,3 +1,6 @@
+/*
+    Модуль ввода-вывода
+*/
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,15 +8,24 @@
 
 #include <io.h>
 #include <errors.h>
+#include <spc_i18n.h>
+
+#define IO_BUF_SIZE 1024
 
 static FILE *in;
 static FILE *out;
-static char io_buff[1024];
-static int io_bufpos = 1024;
+static char io_buff[IO_BUF_SIZE];
+static char io_ungetc_buf[IO_BUF_SIZE];
+
+static int io_bufpos = IO_BUF_SIZE;
 static int io_buflen = 0;
+static int io_ungetc_pos = -1;
 
 int io_line = 1, io_c = 1;
 
+/*
+ * Производит инициализацию, открывая входной и выходной файлы
+ */
 int io_open(const char *fname_in, const char *fname_out)
 {
 	if(!strncmp("-", fname_in, 4))
@@ -23,7 +35,7 @@ int io_open(const char *fname_in, const char *fname_out)
 		in = fopen(fname_in, "rb");
 		if(!in)
 		{
-			err_include(EFATAL, "can't open input file", 0, 0, 0);
+			err_include(EFATAL, _("IO : can't open input file"), 0, 0, 0);
 			return EIOERR;
 		}
 	}
@@ -31,46 +43,78 @@ int io_open(const char *fname_in, const char *fname_out)
 	out = fopen(fname_out, "wb");
 	if(!out)
 	{
-		err_include(EFATAL, "can't open output file", 0, 0, 0);
+		err_include(EFATAL, _("IO : can't open output file"), 0, 0, 0);
 		return EIOERR;
 	}
 
 	return ENONE;
 }
 
+/*
+ * Деинициализация: закрывает входной и выходной файлы
+ */
 void io_close(void)
 {
+#ifdef STRANGE
+    err_rest();
+#endif
 	fclose(in);
 	fclose(out);
 }
 
+/*
+ * Возвращает следующий символ из потока символов
+ */
 char io_next_c(void)
 {
 	char r = -1;
-	if(io_bufpos > 1023)
+
+    // Реализация ungetc
+	if (io_ungetc_pos >= 0)
 	{
-		io_buflen = fread(io_buff, 1, 1024, in);
+        io_c--;
+        if (io_c == 0)
+        {
+            io_c = 1;
+            io_line--;
+        }
+        return io_ungetc_buf[io_ungetc_pos--];
+	}
+
+    // Если буфер кончился, считаем еще
+	if(io_bufpos >= IO_BUF_SIZE)
+	{
+		io_buflen = fread(io_buff, 1, IO_BUF_SIZE, in);
 		io_bufpos = 0;
 	}
 
+    // Если закончился файл
 	if(io_bufpos >= io_buflen)
 	{
 		//err_include(EFATAL, "unexpected end of file", io_line, io_c);
 		r = EOF;
+		err_line(io_line); // TODO: HACK
 	} else {
 		r = io_buff[io_bufpos++];
 
 #ifdef STRANGE
-		putchar(r);
+        if (io_c == 1) // Вставим отступ перед первым символом
+        {
+#ifdef STRANGE
+			err_line(io_line-1);
+#endif
+            fprintf(stderr, "      "); // 6 пробелов
+        }
+		fputc(r, stderr);
 #endif
 
 		if(r == '\n')
 		{
-
+/*
 #ifdef STRANGE
 			err_line(io_line);
 #endif
-
+*/
 			io_line++;
 			io_c = 1;
 		} else {
@@ -79,74 +123,23 @@ char io_next_c(void)
 	}
 	return r;
 }
+
 /*
-static void putdec(uint32_t byte);
-static void puthexi(uint32_t dword);
-static void puthex(uint8_t byte);
-static void puthexd(uint8_t byte);
-static void vprintf(const char *fmt, va_list args);
-
-static void putdec(uint32_t byte)
+ * Возвращает символ во входной поток
+ */
+void io_ungetc(char c)
 {
-  uint8_t b1;
-  int b[30];
-  signed int nb;
-  int i=0;
-  
-  while(1){
-    b1=byte%10;
-    b[i]=b1;
-    nb=byte/10;
-    if(nb<=0){
-      break;
+    if(io_ungetc_pos < IO_BUF_SIZE)
+    {
+        io_ungetc_buf[++io_ungetc_pos] = c;
     }
-    i++;
-    byte=nb;
-  }
-  
-  for(nb=i+1;nb>0;nb--){
-    puthexd(b[nb-1]);
-  }
 }
 
-static void puthexi(uint32_t dword)
-{
-  puthex( (dword & 0xFF000000) >>24);
-  puthex( (dword & 0x00FF0000) >>16);
-  puthex( (dword & 0x0000FF00) >>8);
-  puthex( (dword & 0x000000FF));
-}
-
-
-static void puthex(uint8_t byte)
-{
- unsigned  char lb, rb;
-
-  lb=byte >> 4;
-  
-  rb=byte & 0x0F;
-  
-  
-  puthexd(lb);
-  puthexd(rb);
-}
-
-static void puthexd(uint8_t digit)
-{
-  char table[]="0123456789ABCDEF";
-   fputc(table[digit], out);
-}
-
-static void putbin(uint8_t byte)
-{
-        int i = 0;
-        for (i = 0; i <8; i++)  puthexd(((byte<<i)>>7)&0x01);
-}
-*/
 #define va_start(v,l) __builtin_va_start(v,l)
 #define va_arg(v,l)   __builtin_va_arg(v,l)
 #define va_end(v)     __builtin_va_end(v)
 #define va_copy(d,s)  __builtin_va_copy(d,s)
+
 typedef __builtin_va_list va_list;
 
 void io_printf(const char *fmt, ...)
@@ -159,50 +152,3 @@ void io_printf(const char *fmt, ...)
 
   va_end(args);
 }
-/*
-static void vprintf(const char *fmt, va_list args)
-{
-  while (*fmt) {
-    
-    switch (*fmt) {
-    case '%':
-      fmt++;
-
-      switch (*fmt) {
-      case 's':
-	fputs(va_arg(args, char *), out);
-	break;
-	
-      case 'c':
-	fputc(va_arg(args, uint32_t), out);
-	break;
-	
-      case 'i':
-	putdec(va_arg(args, uint32_t));
-	break;
-
-      case 'x':
-	puthex(va_arg(args, uint32_t));
-	break;
-	
-      case 'X':
-	puthexi(va_arg(args, uint32_t));
-	break;
-
-      case 'b':
-	putbin(va_arg(args, uint32_t));
-	break;
-
-      }
-      
-
-      break;
-      
-    default:
-      fputc(*fmt, out);
-      break;
-    }
-
-    fmt++;
-  }
-}*/

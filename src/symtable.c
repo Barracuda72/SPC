@@ -5,6 +5,7 @@
 #include <symtable.h>
 #include <errors.h>
 #include <lexer.h>
+#include <spc_i18n.h>
 
 /*
 	Таблица символов
@@ -16,7 +17,7 @@ typedef struct
 	char *sym;
 } sym_entry;
 
-static sym_entry sym_bols[] = 
+static sym_entry sym_bols[] =
 {
 	/*
 		Односимвольные коды
@@ -57,9 +58,11 @@ static sym_entry sym_bols[] =
 	/*
 		Коды-заглушки для встроенных типов лексем
 	*/
-	{L_IDENT, "IDENT"},
-	{L_NUMERIC, "NUMERIC"},
-	{L_FLOAT, "FLOAT"},
+	{L_IDENT, "@IDENT"},
+	{L_NUMERIC, "@NUMERIC"},
+	{L_FLOAT, "@FLOAT"},
+	{L_SCONST, "@SCONST"},
+	{L_CHARCONST, "@CHARCONST"},
 	/*
 		Двухсимвольные коды
 	*/
@@ -78,7 +81,10 @@ static sym_entry sym_bols[] =
 	{L_XOR, "xor"},
 	{L_NOT, "not"},
 	{L_FOR, "for"},
-	{L_SET, "set"},
+	{L_DIV, "div"},
+	{L_MOD, "mod"},
+	{L_NIL, "nil"},
+	{L_SSET, "set"},
 	/*
 		Четырехсимвольные коды
 	*/
@@ -86,14 +92,14 @@ static sym_entry sym_bols[] =
 	{L_GOTO, "goto"},
 	{L_WITH, "with"},
 	{L_CASE, "case"},
-	{L_TRUE, "true"},
+	//{L_TRUE, "true"},
 	{L_THEN, "then"},
 	{L_ELSE, "else"},
-	{L_REAL, "real"},
-	{L_WORD, "word"},
-	{L_BYTE, "byte"},
-	{L_FILE, "file"},
-	{L_TEXT, "text"},
+	//{L_REAL, "real"},
+	//{L_WORD, "word"},
+	//{L_BYTE, "byte"},
+	//{L_FILE, "file"},
+	//{L_TEXT, "text"},
 	/*
 		Пять символов
 	*/
@@ -103,22 +109,24 @@ static sym_entry sym_bols[] =
 	{L_BREAK, "break"},
 	{L_ARRAY, "array"},
 	{L_CONST, "const"},
-	{L_FALSE, "false"},
-	{L_SHORT, "short"},
+	{L_LABEL, "label"},
+	//{L_FALSE, "false"},
+	//{L_SHORT, "short"},
 	/*
 		Шесть символов
 	*/
 	{L_REPEAT, "repeat"},
 	{L_DOWNTO, "downto"},
 	{L_RECORD, "record"},
-	{L_STRING, "string"},
+	//{L_STRING, "string"},
 	/*
-		Остальное 
+		Остальное
 	*/
-	{L_INTEGER, "integer"},
+	//{L_INTEGER, "integer"},
 	{L_PROGRAM, "program"},
 	{L_FUNCTION, "function"},
-	{L_PROCEDURE, "procedure"}
+	{L_PROCEDURE, "procedure"},
+	{L_INVALID, "INVALID"}
 	//{, ""},
 };
 
@@ -126,11 +134,18 @@ static int sym_count = sizeof(sym_bols)/sizeof(sym_entry);
 
 extern int lex_line, lex_c;
 
+/*
+ * Проверяет, является ли символ допустимым в идентификаторе
+ */
 static int isidsym(char c)
 {
 	return (isalnum(c)||(c == '_'));
 }
 
+/*
+ * Проверяет, является ли строка потенциальным идентификатором
+ * (состоит ли она из допустимых для идентификатора символов)
+ */
 static int isident(const char *s)
 {
 	if ((!isalpha(*s)) && (*s != '_'))
@@ -145,6 +160,9 @@ static int isident(const char *s)
 	return 1;
 }
 
+/*
+ * Проверяет, является ли строка целым числом
+ */
 static int isnum(const char *s)
 {
 	int si = 0;
@@ -155,6 +173,7 @@ static int isnum(const char *s)
 			if(!si)
 			{
 				si = 1;
+				s++;
 				continue;
 			}
 			else return 0;
@@ -165,44 +184,50 @@ static int isnum(const char *s)
 	return 1;
 }
 
+/*
+ * Проверяет, является ли строка числом с плавающей точкой
+ */
 static int isfloat(const char *s)
 {
 	int p = 0;	// Встретилась точка
 	int e = 0;	// Встретилась буква E
 	int si = 0;	// Встретился знак
 	int n = 0;	// Встретилась цифра
+
 	while(*s)
 	{
-		if(*s == '.')
+		if(*s == get_dec_point())
 		{
 			if((p == 0)&&(n == 1))	// Точка не может повторяться и следовать перед цифрой
 				p = 1;
 			else
 				return 0;
-		} else if((tolower(*s) == 'e')&&(n == 1))
-		{
+		} else if((tolower(*s) == 'e')&&(n == 1)) {
 			if(e == 0)
 				e = 1;
 			else
 				return 0;
-		} else if((*s == '-')||(*s == '+'))
-		{
+		} else if((*s == '-')||(*s == '+')) {
 			if((si == 0) && (e != 0) && (tolower(*(s - 1)) == 'e'))
 				si = 1;
 			else
 				return 0;
-		} else if(!isdigit(*s))
+		} else if(!isdigit(*s)) {
 			return 0;
-		else n = 1;
+		} else n = 1;
 		s++;
 	}
 	return 1;
 }
 
-int sym_get_code(char *sym)
+/*
+ * Возвращает код символа
+ */
+int sym_get_code(const char *sym)
 {
 	int i;
-	//printf("Sym_get_code = %s\n", sym);
+
+    // Сначала ищем в таблице
 	for(i = 0; i < sym_count; i++)
 	{
 		if(!strncasecmp(sym, sym_bols[i].sym, 100))
@@ -210,16 +235,27 @@ int sym_get_code(char *sym)
 			return sym_bols[i].code;
 		}
 	}
+
+    // Если это целое число
 	if(isnum(sym))
 		return L_NUMERIC;
+
+    // Если это вещественное число
 	if(isfloat(sym))
 		return L_FLOAT;
+
+    // Если это идентификатор
 	if(isident(sym))
 		return L_IDENT;
-	err_include(ERROR, "SYM : unknown symbol", sym, lex_line, lex_c);
+
+    // Какая-то фигня
+	err_include(ERROR, "SYM : unknown symbol", 0, lex_line, lex_c);
 	return 0;
 }
 
+/*
+ * Возвращает символ по его коду
+ */
 char *sym_get_sym(int code)
 {
 	int i;
